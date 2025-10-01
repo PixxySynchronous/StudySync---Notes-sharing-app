@@ -1,5 +1,28 @@
-// Use environment variable for deployment; fallback to localhost in dev
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5001/api';
+// Resolve and normalize API base URL
+// Logic:
+// 1. Take VITE_API_BASE_URL if provided.
+// 2. In dev, fallback to localhost.
+// 3. In production, throw if missing (avoid silently calling localhost from a deployed frontend).
+// 4. Ensure the final base ends with '/api' exactly once.
+const rawEnvBase: string | undefined = (import.meta as any).env?.VITE_API_BASE_URL?.trim();
+function buildApiBase(): string {
+  let base = rawEnvBase && rawEnvBase.replace(/\/$/, ''); // remove trailing slash
+  if (!base) {
+    if (import.meta.env.DEV) {
+      base = 'http://localhost:5001/api';
+      // Helpful hint in dev if someone forgot to set env
+      // eslint-disable-next-line no-console
+      console.warn('[api] Using localhost fallback API base URL');
+    } else {
+      throw new Error('VITE_API_BASE_URL is not defined in production build. Set it to your backend URL (include protocol).');
+    }
+  }
+  if (!/\/api$/.test(base)) {
+    base = base.replace(/\/$/, '') + '/api';
+  }
+  return base;
+}
+const API_BASE_URL = buildApiBase();
 
 // API client with automatic token handling
 class ApiClient {
