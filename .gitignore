@@ -1,0 +1,20 @@
+# Node / general
+node_modules
+.DS_Store
+dist
+build
+*.log
+
+# Env files (never commit secrets)
+.env
+.env.*
+.ENV
+backend/.ENV
+frontend/.env
+
+# Uploads (optional - uncomment if you externalize storage)
+# backend/uploads
+
+# Editor
+.vscode
+.idea
