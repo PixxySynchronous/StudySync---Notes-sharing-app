@@ -15,10 +15,24 @@ const allowedOrigins = new Set([
 ]);
 
 const dynamicCors = (origin, callback) => {
-  if (!origin) return callback(null, true); // allow non-browser requests
-  // Allow Render preview deploys automatically
+  if (!origin) return callback(null, true); // allow non-browser requests (curl, server-to-server)
+
+  // Always allow Render domains (preview & prod)
   if (/render\.com$/.test(origin) || /onrender\.com$/.test(origin)) return callback(null, true);
+
+  // Optional: allow Vercel preview & production deployments
+  // Set ALLOW_VERCEL_PREVIEWS=true to enable wildcard acceptance of any *.vercel.app
+  if ((process.env.ALLOW_VERCEL_PREVIEWS === 'true') && /\.vercel\.app$/.test(origin)) {
+    return callback(null, true);
+  }
+
+  // Explicitly configured origins
   if (allowedOrigins.has(origin)) return callback(null, true);
+
+  // (Optional) log blocked origins for debugging (disable in noisy prod scenarios)
+  if (process.env.LOG_CORS_BLOCKS === 'true') {
+    console.warn('[CORS BLOCK]', origin);
+  }
   return callback(new Error('CORS not allowed for origin: ' + origin), false);
 };
 
