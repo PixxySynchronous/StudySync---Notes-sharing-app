@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:5001/api';
+// Use environment variable for deployment; fallback to localhost in dev
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5001/api';
 
 // API client with automatic token handling
 class ApiClient {

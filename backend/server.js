@@ -5,15 +5,29 @@ const cors = require("cors");
 const path = require("path");
 const app = express();
 
-// CORS configuration
-const corsOptions = {
-  origin: ['http://localhost:8080', 'http://localhost:5173', 'http://127.0.0.1:8080', 'http://127.0.0.1:5173'],
+// CORS configuration (dynamic for deployment)
+const allowedOrigins = new Set([
+  'http://localhost:8080',
+  'http://localhost:5173',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:5173',
+  process.env.FRONTEND_URL,
+]);
+
+const dynamicCors = (origin, callback) => {
+  if (!origin) return callback(null, true); // allow non-browser requests
+  // Allow Render preview deploys automatically
+  if (/render\.com$/.test(origin) || /onrender\.com$/.test(origin)) return callback(null, true);
+  if (allowedOrigins.has(origin)) return callback(null, true);
+  return callback(new Error('CORS not allowed for origin: ' + origin), false);
+};
+
+app.use(cors({
+  origin: dynamicCors,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true
-};
-
-app.use(cors(corsOptions));
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
