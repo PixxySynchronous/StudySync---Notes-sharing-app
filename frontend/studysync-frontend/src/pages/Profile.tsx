@@ -16,6 +16,9 @@ const Profile = () => {
     email: "",
     avatar: "",
   });
+  const [accountStats, setAccountStats] = useState({ totalNotes: 0, sharedNotes: 0 });
+  const [studyStreak, setStudyStreak] = useState<number | null>(null);
+  const [memberSince, setMemberSince] = useState<string | null>(null);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -29,12 +32,46 @@ const Profile = () => {
 
   const fetchProfile = async () => {
     try {
-      const profile = await apiClient.getProfile();
+      // Fetch profile, dashboard stats and recent activity in parallel
+      const [profile, dashboardStats, activity] = await Promise.all([
+        apiClient.getProfile(),
+        apiClient.getDashboardStats(),
+        apiClient.getUserActivity(),
+      ]);
+
       setProfileData({
         name: profile.name || "",
         email: profile.email || "",
         avatar: profile.avatar || "",
       });
+
+      // Member since from profile.createdAt if available
+      if (profile.createdAt) {
+        const d = new Date(profile.createdAt);
+        setMemberSince(d.toLocaleString(undefined, { month: 'short', year: 'numeric' }));
+      }
+
+      // Account stats
+      setAccountStats({
+        totalNotes: dashboardStats?.totalNotes || 0,
+        sharedNotes: dashboardStats?.sharedNotes || 0,
+      });
+
+      // Compute current study streak (consecutive days with activity up to today)
+      try {
+        const recent = activity?.recentActivity || [];
+        const datesSet = new Set(recent.map((a: any) => new Date(a.createdAt).toDateString()));
+        let streak = 0;
+        const day = new Date();
+        // iterate backwards until a day without activity
+        while (datesSet.has(day.toDateString())) {
+          streak++;
+          day.setDate(day.getDate() - 1);
+        }
+        setStudyStreak(streak);
+      } catch (err) {
+        setStudyStreak(null);
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -257,19 +294,19 @@ const Profile = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Total Notes</span>
-                <span className="font-medium">24</span>
+                <span className="font-medium">{accountStats.totalNotes}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Shared Notes</span>
-                <span className="font-medium">12</span>
+                <span className="font-medium">{accountStats.sharedNotes}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Study Streak</span>
-                <span className="font-medium">7 days</span>
+                <span className="font-medium">{studyStreak !== null ? `${studyStreak} days` : '—'}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Member Since</span>
-                <span className="font-medium">Jan 2024</span>
+                <span className="font-medium">{memberSince || '—'}</span>
               </div>
             </CardContent>
           </Card>

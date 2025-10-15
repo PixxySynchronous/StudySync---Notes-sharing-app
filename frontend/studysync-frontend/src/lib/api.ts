@@ -98,7 +98,13 @@ class ApiClient {
 
   // User methods
   async getProfile() {
-    return await this.request<any>('/users/profile');
+    const profile = await this.request<any>('/users/profile');
+    // Normalize avatar URL to absolute if backend returned a relative path
+    if (profile?.avatar && profile.avatar.startsWith('/')) {
+      const origin = this.baseURL.replace(/\/api$/, '');
+      profile.avatar = origin + profile.avatar;
+    }
+    return profile;
   }
 
   async updateProfile(name: string, email: string) {
@@ -128,7 +134,12 @@ class ApiClient {
       throw new Error('Avatar upload failed');
     }
 
-    return await response.json();
+    const data = await response.json();
+    if (data?.avatarUrl && typeof data.avatarUrl === 'string' && data.avatarUrl.startsWith('/')) {
+      const origin = this.baseURL.replace(/\/api$/, '');
+      data.avatarUrl = origin + data.avatarUrl;
+    }
+    return data;
   }
 
   async changePassword(currentPassword: string, newPassword: string) {
